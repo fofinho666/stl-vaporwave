@@ -1,0 +1,45 @@
+html,
+body,
+#root,
+.bg,
+canvas {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  background: pink
+}
+
+.background {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+.dropzone{
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+.dropzone-hddien{
+  width: 0%;
+  height: 0%;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.layer {
+  width: 100%;
+  height: 75%;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(0deg, rgba(63, 12, 88, 0.2) 0%, transparent 100%);
+  pointer-events: none;
+}

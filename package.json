@@ -1,0 +1,15 @@
+{
+  "name": "stl-vaporwave",
+  "scripts": {
+    "start": "concurrently npm:start:backend npm:start:frontend -n 'Go,React' -c 'cyan.bold,blue.bold'",
+    "start:backend": "cd backend && bin/air",
+    "start:frontend": "cd frontend && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^5.3.0"
+  },
+  "dependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  }
+}
