@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	rice "github.com/GeertJohan/go.rice"
 	"github.com/fofinho666/stl-vaporwave/server/handlers"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -21,13 +22,21 @@ func main() {
 		return
 	}
 
+	if _, err := os.Stat(StorageFolder); os.IsNotExist(err) {
+		_ = os.Mkdir(StorageFolder, os.ModePerm)
+	}
+
 	handlers.StorageFolder = StorageFolder
 
 	r := mux.NewRouter()
 	r.Use(LogMiddleware)
-	r.HandleFunc("/api/files", handlers.FilesIndex).Methods("GET")
-	r.HandleFunc("/api/files", BasicAuth(handlers.FilesCreate)).Methods("POST")
-	r.HandleFunc("/api/files/{filename}", handlers.FileIndex).Methods("GET")
+
+	api := r.PathPrefix("/api/").Subrouter()
+	api.HandleFunc("/files", handlers.FilesIndex).Methods("GET")
+	api.HandleFunc("/files", BasicAuth(handlers.FilesCreate)).Methods("POST")
+	api.HandleFunc("/files/{filename}", handlers.FileIndex).Methods("GET")
+
+	r.PathPrefix("/").Handler(http.FileServer(rice.MustFindBox("../../frontend/dist").HTTPBox()))
 
 	srv := &http.Server{
 		Handler:      r,
