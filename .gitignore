@@ -1,6 +1,7 @@
 backend/bin
 backend/tmp
 backend/.env
+backend/server/rice-box.go
 
 frontend/dist
 frontend/node_modules
