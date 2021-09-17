@@ -1,50 +1,59 @@
+#!make
 # ########################################################## #
 # Makefile for Golang Project
 # Includes cross-compiling, installation, cleanup
 # ########################################################## #
-
+include .env
 # Check for required command tools to build or stop immediately
 EXECUTABLES = git go find pwd curl
 K := $(foreach exec,$(EXECUTABLES),\
-        $(if $(shell which $(exec)),some string,$(error "No $(exec) in PATH")))
+				$(if $(shell which $(exec)),some string,$(error "No $(exec) in PATH")))
 
 ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 SOURCE_FILE=server/main.go
 BUILD_FOLDER=bin
-BINARY=stl-vaporwave
-VERSION=0.0.1
-BUILD=`git rev-parse HEAD`
+DIST_FOLDER=dist
+BINARY_NAME=stl-vaporwave
+VERSION:=$(shell git describe --tags --abbrev=0)
+BUILD:=$(shell git rev-parse HEAD)
 PLATFORMS=darwin linux windows
-ARCHITECTURES=386 amd64
+ARCHITECTURES=amd64
 # Setup linker flags option for build that interoperate with variable names in src code
-LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.Build=${BUILD}"
+LDFLAGS=-ldflags "-X main.Version=$(VERSION) -X main.Build=$(BUILD)"
 
 default: build
 
-all: clean install install_air build_all
+all: clean install build release
 
 build:
 	cd server && rice embed-go 
-	go build ${LDFLAGS} -o ${BUILD_FOLDER}/${BINARY} ${SOURCE_FILE}
+	go build $(LDFLAGS) -o $(BUILD_FOLDER)/$(BINARY_NAME) $(SOURCE_FILE)
+	cd server && rice append --exec ../$(BUILD_FOLDER)/$(BINARY_NAME)
+	chmod +x $(BUILD_FOLDER)/$(BINARY_NAME)
 
-build_all:
-	cd server && rice embed-go 
+clean_build:
+	find $(ROOT_DIR)/$(BUILD_FOLDER) -name $(BINARY_NAME) -delete
+
+release: clean_release
 	$(foreach GOOS, $(PLATFORMS),\
 		$(foreach GOARCH, $(ARCHITECTURES),\
-			$(shell export GOOS=$(GOOS); export GOARCH=$(GOARCH); go build -v -o ${BUILD_FOLDER}/${BINARY}-$(GOOS)-$(GOARCH) ${SOURCE_FILE})))
+		  $(shell export GOOS=$(GOOS); export GOARCH=$(GOARCH); go build -o $(DIST_FOLDER)/$(BINARY_NAME)-$(GOOS)-$(GOARCH) $(SOURCE_FILE); cd server && rice append --exec ../$(DIST_FOLDER)/$(BINARY_NAME)-$(GOOS)-$(GOARCH))))
+	gzip $(DIST_FOLDER)/* 
+	ghr -t $(GITHUB_TOKEN) --replace --draft $(VERSION) $(DIST_FOLDER)
+
+clean_release: 
+	find $(ROOT_DIR)/$(DIST_FOLDER) -name '$(BINARY_NAME)[-?][a-zA-Z0-9]*[-?][a-zA-Z0-9]*' -delete
 
 install:
 	curl -sSfL https://raw.githubusercontent.com/cosmtrek/air/master/install.sh | sh -s
 	go get -d github.com/GeertJohan/go.rice/rice
-	go install ${LDFLAGS} ${SOURCE_FILE}
-	
+	go install github.com/tcnksm/ghr@latest	
+	go install $(LDFLAGS) $(SOURCE_FILE)
+
 dev:
-	./${BUILD_FOLDER}/air
+	./$(BUILD_FOLDER)/air
 
-# Remove only what we've created
-clean:
-	find ${ROOT_DIR}/${BUILD_FOLDER} -name '${BINARY}[-?][a-zA-Z0-9]*[-?][a-zA-Z0-9]*' -delete
-	find ${ROOT_DIR}/${BUILD_FOLDER} -name ${BINARY} -delete
-	find ${ROOT_DIR}/${BUILD_FOLDER} -name air -delete
+clean: clean_release clean_build
+	find $(ROOT_DIR)/$(BUILD_FOLDER) -name air -delete
 
-.PHONY: check clean install build_all all
+.PHONY: default all build clean_build release clean_release install dev clean
